@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora Mecânica Auto Center</title>
+
+<style>
+:root{ --bg:#0a0a0a; }
+*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:var(--bg);
+  color:#fff;
+  overflow:hidden;
+}
+
+canvas{position:fixed;inset:0;z-index:0;}
+
+.container{
+  position:relative;
+  z-index:1;
+  max-width:900px;
+  margin:40px auto;
+  padding:20px;
+  background:rgba(15,15,15,.9);
+  border-radius:16px;
+}
+
+h1{text-align:center;color:#0ff;}
+.section{margin-bottom:18px;}
+
+.row{
+  display:grid;
+  grid-template-columns: 1.8fr .7fr .8fr;
+  gap:6px;
+  align-items:center;
+  margin-bottom:6px;
+}
+
+.row input{
+  padding:6px;
+  border-radius:6px;
+  border:none;
+  text-align:center;
+}
+
+.price{text-align:right;font-weight:bold;}
+
+.total{
+  margin-top:16px;
+  font-size:22px;
+  text-align:center;
+  color:#0ff;
+}
+
+button{
+  margin:16px auto 0;
+  display:block;
+  padding:8px 22px;
+  border:none;
+  border-radius:10px;
+  background:#0ff;
+  color:#000;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+footer{
+  text-align:center;
+  margin-top:14px;
+  font-size:11px;
+  opacity:.6;
+}
+
+/* TOAST */
+.toast{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:10;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .6s;
+}
+
+.toast-box{
+  position:relative;
+  padding:22px 34px;
+  border-radius:16px;
+  background:rgba(255,255,255,.28);
+  backdrop-filter:blur(18px);
+  overflow:hidden;
+}
+
+.toast-box::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:url("capital_city.png");
+  background-repeat:repeat;
+  background-size:110px;
+  opacity:.12;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="neural"></canvas>
+
+<div class="container">
+<h1>Calculadora – Mecânica Auto Center</h1>
+
+<div class="section">
+<div class="row"><label>Kit Reparo</label><input type="number" data-price="1000"><div class="price">R$ 1.000</div></div>
+<div class="row"><label>Pneu</label><input type="number" data-price="500"><div class="price">R$ 500</div></div>
+<div class="row"><label>Chave Grifo</label><input type="number" data-price="1500"><div class="price">R$ 1.500</div></div>
+<div class="row"><label>Pé de Cabra</label><input type="number" data-price="1500"><div class="price">R$ 1.500</div></div>
+<div class="row"><label>Rastreador</label><input type="number" data-price="2000"><div class="price">R$ 2.000</div></div>
+</div>
+
+<div class="section">
+<div class="row"><label>Deslocamento Próximo</label><input type="number" data-price="2500"><div class="price">R$ 2.500</div></div>
+<div class="row"><label>Deslocamento Longe</label><input type="number" data-price="3500"><div class="price">R$ 3.500</div></div>
+<div class="row"><label>Seguro</label><input type="number" data-price="2700"><div class="price">R$ 2.700</div></div>
+</div>
+
+<div class="total" id="total">Total: R$ 0</div>
+<button id="clear">Limpar calculadora</button>
+
+<footer>© 2026 Mecânica Auto Center</footer>
+</div>
+
+<div class="toast" id="toast">
+  <div class="toast-box">
+    <div class="toast-content">Valores apagados</div>
+  </div>
+</div>
+
+<script>
+const inputs=document.querySelectorAll('input');
+const totalEl=document.getElementById('total');
+const toast=document.getElementById('toast');
+let activity=0;
+
+function calc(){
+ let t=0;
+ inputs.forEach(i=>t+=(i.value||0)*i.dataset.price);
+ totalEl.textContent='Total: R$ '+t.toLocaleString('pt-BR');
+ activity=Math.min(1,t/20000);
+}
+inputs.forEach(i=>i.addEventListener('input',calc));
+
+document.getElementById('clear').onclick=()=>{
+ inputs.forEach(i=>i.value='');
+ calc();
+ toast.style.opacity=1;
+ setTimeout(()=>toast.style.opacity=0,2400);
+};
+
+/* === FUNDO NEURAL REFINADO === */
+const c=document.getElementById('neural'),ctx=c.getContext('2d');
+function resize(){c.width=innerWidth;c.height=innerHeight}
+resize();addEventListener('resize',resize);
+
+let pts=[...Array(140)].map(()=>({
+ x:Math.random()*c.width,
+ y:Math.random()*c.height,
+ vx:(Math.random()-.5)*0.22,
+ vy:(Math.random()-.5)*0.22
+}));
+
+function loop(){
+ ctx.clearRect(0,0,c.width,c.height);
+
+ pts.forEach(p=>{
+  p.x+=p.vx*(0.7+activity);
+  p.y+=p.vy*(0.7+activity);
+  if(p.x<0||p.x>c.width)p.vx*=-1;
+  if(p.y<0||p.y>c.height)p.vy*=-1;
+  ctx.fillStyle='rgba(255,255,255,.25)';
+  ctx.beginPath();ctx.arc(p.x,p.y,2,0,Math.PI*2);ctx.fill();
+ });
+
+ for(let i=0;i<pts.length;i++)
+ for(let j=i+1;j<pts.length;j++){
+  const dx=pts[j].x-pts[i].x;
+  const dy=pts[j].y-pts[i].y;
+  const d=Math.hypot(dx,dy);
+
+  if(d<135){
+   const alpha=(1-d/135)*(0.16+activity);
+   const col=`rgba(${90+activity*140},${190+activity*60},255,${alpha})`;
+
+   ctx.strokeStyle=col;
+   ctx.beginPath();
+   ctx.moveTo(pts[i].x,pts[i].y);
+   ctx.lineTo(pts[j].x,pts[j].y);
+   ctx.stroke();
+
+   /* TEXTO MAIS RARO E SEM SUMIR ANTES DA LINHA */
+   if(d<70 && alpha>0.12 && Math.random()<0.00045){
+    const mx=(pts[i].x+pts[j].x)/2;
+    const my=(pts[i].y+pts[j].y)/2;
+    ctx.save();
+    ctx.translate(mx,my);
+    ctx.rotate(Math.atan2(dy,dx));
+    ctx.font='8px Arial';
+    ctx.fillStyle=col; // MESMO ALPHA DA LINHA
+    ctx.fillText('MECÂNICA AUTO CENTER',0,0);
+    ctx.restore();
+   }
+  }
+ }
+
+ requestAnimationFrame(loop);
+}
+loop();
+</script>
+
+</body>
+</html>
